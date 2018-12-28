@@ -6,7 +6,7 @@ enum mitosis_layers {
   _TARMAK1,
   _TARMAK2,
   _TARMAK3,
-  _TARMAK4,
+  _BEAKL,
   _COLEMAK,
   _RAISE,
   _LOWER,
@@ -21,8 +21,9 @@ enum mitosis_keycodes {
   TARMAK1,
   TARMAK2,
   TARMAK3,
-  TARMAK4,
-  COLEMAK
+  BEAKL,
+  COLEMAK,
+  THUMB
 };
 
 #define MOUSEKEY_INTERVAL 40
@@ -72,10 +73,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
   },
 
-  [_TARMAK4] = {
-    {KC_Q,     KC_W,     KC_F,     KC_P,     KC_B,        KC_J,     KC_U,     KC_I,     KC_Y,     KC_SCLN },
-    {KC_A,     KC_R,     KC_S,     KC_T,     KC_G,        KC_M,     KC_N,     KC_E,     KC_L,     KC_O    },
-    {KC_Z,     KC_X,     KC_C,     KC_D,     KC_V,        KC_K,     KC_H,     KC_COMM,  KC_DOT,   KC_QUOT },
+  [_BEAKL] = {
+    {KC_SCLN,  KC_Y,     KC_O,     KC_U,     KC_Z,        KC_G,     KC_D,     KC_N,     KC_M,     KC_X    },
+    {KC_Q,     KC_H,     KC_E,     KC_A,     KC_DOT,      KC_C,     KC_T,     KC_R,     KC_S,     KC_W    },
+    {KC_J,     KC_I,     KC_QUOT,  KC_K,     KC_COMM,     KC_B,     KC_P,     KC_L,     KC_F,     KC_V    },
     {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
     {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
   },
@@ -89,7 +90,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   },
 
   [_LOWER] = {
-    {_______,  KC_AT,    KC_LCBR,  KC_RCBR,  KC_PERC,     KC_UNDS,  KC_PIPE,  KC_AMPR,  KC_ASTR,  _______ },
+    {_______,  KC_AT,    KC_LCBR,  KC_RCBR,  KC_PERC,     KC_UNDS,  KC_PIPE,  KC_AMPR,  KC_ASTR,  THUMB   },
     {KC_HASH,  KC_DLR,   KC_LPRN,  KC_RPRN,  KC_GRV,      KC_LEFT,  KC_DOWN,  KC_UP,    KC_RGHT,  KC_MINS },
     {KC_BSLS,  KC_CIRC,  KC_LBRC,  KC_RBRC,  KC_TILD,     KC_PLUS,  KC_EQL,   KC_EXLM,  KC_QUES,  KC_SLSH },
     {XXXXXXX,  KC_MUTE,  _______,  _______,  _______,     KC_INS,   KC_DEL,   _______,  _______,  XXXXXXX },
@@ -107,7 +108,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_ADJUST] = {
     {RESET,    _______,  _______,  _______,  MACSLEEP,    KC_F13,   KC_F7,    KC_F8,    KC_F9,    KC_F10  },
     {_______,  _______,  _______,  _______,  QWERTY,      KC_F14,   KC_F4,    KC_F5,    KC_F6,    KC_F11  },
-    {TARMAK1,  TARMAK2,  TARMAK3,  TARMAK4,  COLEMAK,     KC_F15,   KC_F1,    KC_F2,    KC_F3,    KC_F12  },
+    {TARMAK1,  TARMAK2,  TARMAK3,  BEAKL,  COLEMAK,     KC_F15,   KC_F1,    KC_F2,    KC_F3,    KC_F12  },
     {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
     {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
   },
@@ -143,9 +144,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
       return false;
       break;
 
-    case TARMAK4:
+    case BEAKL:
       if (record->event.pressed) {
-        set_single_persistent_default_layer(_TARMAK4);
+        set_single_persistent_default_layer(_BEAKL);
       }
       return false;
       break;
@@ -174,6 +175,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         layer_off(_RAISE);
       }
       update_tri_layer(_LOWER, _RAISE, _ADJUST);
+      return false;
+      break;
+
+    case THUMB:
+      if (record->event.pressed) {
+        SEND_STRING(":+1:");
+      }
       return false;
       break;
 
