@@ -1,224 +1,347 @@
 #include "mitosis.h"
+#include "action_layer.h"
 #include "eeconfig.h"
 
-enum mitosis_layers {
-  _QWERTY,
-  _TARMAK1,
-  _TARMAK2,
-  _TARMAK3,
-  _BEAKL,
-  _COLEMAK,
-  _RAISE,
-  _LOWER,
-  _ADJUST,
+extern keymap_config_t keymap_config;
+
+// ,_TTFNCKEY
+// ,_TTMOUSE
+// ,_TTREGEX
+enum keyboard_layers {
+  _BASE = 0
+ ,_SHIFT
+ ,_GUIFN
+ ,_SYMBOL
+ ,_MOUSE
+ ,_NUMBER
+ ,_FNCKEY
+ ,_EDIT
+ ,_TTCAPS
+ ,_TTCURSOR
+ ,_TTNUMBER
+ ,_END_LAYERS
+ ,_QWERTY
+ ,_RAISE
+ ,_LOWER
+ ,_ADJUST
 };
 
-enum mitosis_keycodes {
-  MACSLEEP = SAFE_RANGE,
-  RAISE,
-  LOWER,
-  QWERTY,
-  TARMAK1,
-  TARMAK2,
-  TARMAK3,
-  BEAKL,
-  COLEMAK,
-  THUMB
+enum keyboard_keycodes {
+  BASE = SAFE_RANGE
+ ,LT_I      // pseudo LT   (_SYMBOL, KC_I) for shifted key-codes, see process_record_user()
+ ,ML_BSLS
+ ,ML_EQL
+ ,SG_TILD   // pseudo GUI_T(S(KC_GRV))     for shifted key-codes, see process_record_user()
+ ,SM_G      // pseudo MT   (MOD_LALT | MOD_LSFT, S(KC_G))
+ ,SS_A      // pseudo SFT_T(S(KC_A))
+ ,SS_T      // pseudo SFT_T(S(KC_T))
+ ,TT_ESC
+ ,SLEEP
+ ,RAISE
+ ,LOWER
+ ,QWERTY
 };
 
-#define MOUSEKEY_INTERVAL 40
-#define MOUSEKEY_DELAY 0
-#define MOUSEKEY_TIME_TO_MAX 8
-#define MOUSEKEY_MAX_SPEED 5
-#define MOUSEKEY_WHEEL_DELAY 0
-#define MOUSEKEY_WHEEL_MAX_SPEED 4
-#define MOUSEKEY_WHEEL_TIME_TO_MAX 0
+// modifier keys
+#define AT_B    ALT_T(KC_B)
+#define CT_C    GUI_T(KC_C)
+#define MT_E    MT   (MOD_LCTL | MOD_LALT, KC_E)
+#define ST_A    SFT_T(KC_A)
 
-// Fillers to make layering more clear
-#define _______ KC_TRNS
-#define __MOD__ KC_TRNS
-#define XXXXXXX KC_NO
-#define SFT_CMD LSFT(KC_LGUI)
+#define HOME_Q  CTL_T(KC_Q)
+#define HOME_H  GUI_T(KC_H)
+#define HOME_E  ALT_T(KC_E)
+#define HOME_A  SFT_T(KC_A)
+#define HOME_T  SFT_T(KC_T)
+#define HOME_R  ALT_T(KC_R)
+#define HOME_S  GUI_T(KC_S)
+#define HOME_W  CTL_T(KC_W)
+
+#include "tapdance.h"
+
+// keycodes
+#define ___x___ KC_TRNS
+#define ___fn__ KC_TRNS
+#ifdef _______
+#undef _______
+#endif
+#define _______ KC_NO
+
+#define HS_COLN KC_COLN
+#define HS_LT   KC_LT
+#define HS_GT   KC_GT
+
+#define COPY    LGUI(KC_C)
+#define CUT     LGUI(KC_X)
+#define EOT     LGUI(KC_D)
+#define NAK     LGUI(KC_U)
+#define PASTE   TD_PASTE
+#define UNDO    LGUI(KC_Z)
+
+#define TT_SPC  LT  (_TTCURSOR, KC_SPC)
+#define LT_ESC  LT  (_NUMBER, KC_ESC)
+#define OS_ALT  OSM (MOD_LALT)
+#define OS_CTL  OSM (MOD_LCTL)
+#define OS_GUI  OSM (MOD_LGUI)
+#define OS_SFT  OSM (MOD_LSFT)
+
+// #define CNTR_TL TT  (_TTFNCKEY)
+#define CNTR_TR TT  (_TTCAPS)               // pseudo capslock to avoid TT key_timer conflicts
+// #define CNTR_HL TT  (_TTCURSOR)
+// #define CNTR_HR TT  (_TTMOUSE)
+#define CNTR_BL TT  (_TTNUMBER)
+// #define CNTR_BR TT  (_TTREGEX)
+
+// ........................................................ Default Alpha Layout
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-  [_QWERTY] = {
-    {KC_Q,     KC_W,     KC_E,     KC_R,     KC_T,        KC_Y,    KC_U,     KC_I,     KC_O,      KC_P    },
-    {KC_A,     KC_S,     KC_D,     KC_F,     KC_G,        KC_H,    KC_J,     KC_K,     KC_L,      KC_SCLN },
-    {KC_Z,     KC_X,     KC_C,     KC_V,     KC_B,        KC_N,    KC_M,     KC_COMM,  KC_DOT,    KC_QUOT },
-    {XXXXXXX,  KC_MPLY,  KC_LALT,  KC_LGUI,  KC_LSFT,     KC_ENT,  KC_TAB,   KC_MEH,   KC_VOLU,   XXXXXXX },
-    {XXXXXXX,  KC_MNXT,  KC_LCTL,  LOWER,    RAISE,       KC_ESC,  KC_SPC,   KC_HYPR,  KC_VOLD,   XXXXXXX }
-  },
 
-  [_TARMAK1] = {
-    {KC_Q,     KC_W,     KC_J,     KC_R,     KC_T,        KC_Y,     KC_U,     KC_I,     KC_O,     KC_P    },
-    {KC_A,     KC_S,     KC_D,     KC_F,     KC_G,        KC_M,     KC_N,     KC_E,     KC_L,     KC_SCLN },
-    {KC_Z,     KC_X,     KC_C,     KC_V,     KC_B,        KC_K,     KC_H,     KC_COMM,  KC_DOT,   KC_QUOT },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
-  },
+#include "base_layout.h"
 
-  [_TARMAK2] = {
-    {KC_Q,     KC_W,     KC_F,     KC_R,     KC_B,        KC_Y,     KC_U,     KC_I,     KC_O,     KC_P    },
-    {KC_A,     KC_S,     KC_D,     KC_T,     KC_G,        KC_M,     KC_N,     KC_E,     KC_L,     KC_SCLN },
-    {KC_Z,     KC_X,     KC_C,     KC_J,     KC_V,        KC_K,     KC_H,     KC_COMM,  KC_DOT,   KC_QUOT },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
-  },
+  // ...................................................... Number / Function Keys
 
-  [_TARMAK3] = {
-    {KC_Q,     KC_W,     KC_F,     KC_J,     KC_B,        KC_Y,     KC_U,     KC_I,     KC_O,     KC_P    },
-    {KC_A,     KC_S,     KC_D,     KC_T,     KC_G,        KC_M,     KC_N,     KC_E,     KC_L,     KC_SCLN },
-    {KC_Z,     KC_X,     KC_C,     KC_J,     KC_V,        KC_K,     KC_H,     KC_COMM,  KC_DOT,   KC_QUOT },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
-  },
+#include "number_fkey_layout.h"
 
-  [_BEAKL] = {
-    {KC_SCLN,  KC_Y,     KC_O,     KC_U,     KC_Z,        KC_G,     KC_D,     KC_N,     KC_M,     KC_X    },
-    {KC_Q,     KC_H,     KC_E,     KC_A,     KC_DOT,      KC_C,     KC_T,     KC_R,     KC_S,     KC_W    },
-    {KC_J,     KC_I,     KC_QUOT,  KC_K,     KC_COMM,     KC_B,     KC_P,     KC_L,     KC_F,     KC_V    },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
-  },
+  // ......................................................... Symbol / Navigation
 
-  [_COLEMAK] = {
-    {KC_Q,     KC_W,     KC_F,     KC_P,     KC_B,        KC_J,     KC_L,     KC_U,     KC_Y,     KC_SCLN },
-    {KC_A,     KC_R,     KC_S,     KC_T,     KC_G,        KC_M,     KC_N,     KC_E,     KC_I,     KC_O    },
-    {KC_Z,     KC_X,     KC_C,     KC_D,     KC_V,        KC_K,     KC_H,     KC_COMM,  KC_DOT,   KC_QUOT },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
-  },
+#include "symbol_guifn_layout.h"
 
-  [_LOWER] = {
-    {_______,  KC_AT,    KC_LCBR,  KC_RCBR,  KC_PERC,     KC_UNDS,  KC_PIPE,  KC_AMPR,  KC_ASTR,  THUMB   },
-    {KC_HASH,  KC_DLR,   KC_LPRN,  KC_RPRN,  KC_GRV,      KC_LEFT,  KC_DOWN,  KC_UP,    KC_RGHT,  KC_MINS },
-    {KC_BSLS,  KC_CIRC,  KC_LBRC,  KC_RBRC,  KC_TILD,     KC_PLUS,  KC_EQL,   KC_EXLM,  KC_QUES,  KC_SLSH },
-    {XXXXXXX,  KC_MUTE,  _______,  _______,  _______,     KC_INS,   KC_DEL,   _______,  _______,  XXXXXXX },
-    {XXXXXXX,  KC_MNXT,  _______,  _______,  _______,     _______,  KC_BSPC,  _______,  _______,  XXXXXXX }
-  },
+  // ............................................................... Toggle Layers
 
-  [_RAISE] = {
-    {KC_PGUP,  KC_BTN1,  KC_MS_U,  KC_BTN2,  KC_END,      KC_SLSH,  KC_7,     KC_8,     KC_9,     KC_PLUS },
-    {KC_PGDN,  KC_MS_L,  KC_MS_D,  KC_MS_R,  KC_HOME,     KC_ASTR,  KC_4,     KC_5,     KC_6,     KC_MINS },
-    {_______,  _______,  KC_WH_D,  KC_WH_U,  _______,     KC_DOT,   KC_1,     KC_2,     KC_3,     KC_EQL  },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     KC_BTN1,  _______,  _______,  _______,  XXXXXXX },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     KC_SPC,   KC_0,     _______,  _______,  XXXXXXX }
-  },
+#include "toggle_layout.h"
 
-  [_ADJUST] = {
-    {RESET,    _______,  _______,  _______,  MACSLEEP,    KC_F13,   KC_F7,    KC_F8,    KC_F9,    KC_F10  },
-    {_______,  _______,  _______,  _______,  QWERTY,      KC_F14,   KC_F4,    KC_F5,    KC_F6,    KC_F11  },
-    {TARMAK1,  TARMAK2,  TARMAK3,  BEAKL,  COLEMAK,     KC_F15,   KC_F1,    KC_F2,    KC_F3,    KC_F12  },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX },
-    {XXXXXXX,  _______,  _______,  _______,  _______,     _______,  _______,  _______,  _______,  XXXXXXX }
-  },
+  // ........................................................................ Edit
+
+#include "edit_layout.h"
+
+  // ................................................... Old QWERTY Mitosis Layout
+
+#include "old_qwerty_layout.h"
+
 };
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+// User Keycode Trap
+// ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+
+#include "keycode_functions.c"
+
+static uint8_t down_punc = 0;               // substitute (0) keycode (1) leader + one shot shift, see cap_lt()
+static uint8_t dual_down = 0;               // dual keys down (2 -> 1 -> 0) reset on last up stroke, see CNTR_TL, CNTR_TR
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record)
+{
+  if (reshifted && !mod_down(KC_LSFT)) { unregister_code(KC_LSFT); reshifted = 0; } // see map_shift()
+
+  // ........................................................ Home Row Modifiers
+
   switch (keycode) {
-    case QWERTY:
-      if (record->event.pressed) {
-        set_single_persistent_default_layer(_QWERTY);
-      }
-      return false;
-      break;
+  case HOME_Q:
+  case HOME_W:
+    tap_mods(record, KC_LCTL);
+    break;
+  case HOME_H:
+  case HOME_S:
+    tap_mods(record, KC_LGUI);
+    break;
+  case HOME_E:
+  case HOME_R:
+    tap_mods(record, KC_LALT);
+    break;
+  case HOME_A:
+    tap_mods(record, KC_LSFT);
+    break;
+  case HOME_T:
+    tap_mods(record, KC_RSFT);              // note: SFT_T actually uses KC_LSFT
+    break;
 
-    case TARMAK1:
-      if (record->event.pressed) {
-        set_single_persistent_default_layer(_TARMAK1);
-      }
-      return false;
-      break;
+  case OS_ALT:
+    tap_mods(record, KC_LALT);
+    break;
+  case OS_CTL:
+    tap_mods(record, KC_LCTL);
+    break;
+  case OS_GUI:
+    tap_mods(record, KC_LGUI);
+    break;
 
-    case TARMAK2:
-      if (record->event.pressed) {
-        set_single_persistent_default_layer(_TARMAK2);
-      }
-      return false;
-      break;
+  // ...................................................... Center Toggle Layers
 
-    case TARMAK3:
-      if (record->event.pressed) {
-        set_single_persistent_default_layer(_TARMAK3);
-      }
-      return false;
-      break;
+  // case CNTR_TL:
+  //   if (raise_layer(record, 0, LEFT, TOGGLE)) { dual_down = 2; return false; } // defer reset!
+  //   if (dual_down)                            { dual_down--; base_layer(dual_down); return false; }
+  //   tt_escape(record, keycode);
+  //   break;
+  case CNTR_TR:
+    if (raise_layer(record, 0, RIGHT, TOGGLE)) { dual_down = 2; return false; } // defer reset!
+    if (dual_down)                             { dual_down--; base_layer(dual_down); return false; }
+    tt_escape(record, keycode);
+    break;
+  // case CNTR_HL:
+  // case CNTR_HR:
+  case CNTR_BL:
+  // case CNTR_BR:
+    tt_escape(record, keycode);
+    break;
 
-    case BEAKL:
-      if (record->event.pressed) {
-        set_single_persistent_default_layer(_BEAKL);
-      }
-      return false;
-      break;
+  case TT_ESC:
+    if (map_shift(record, KC_LSFT, SHIFT, KC_TAB))   { return false; }
+    if (map_shift(record, KC_RSFT, NOSHIFT, KC_TAB)) { return false; }
+    base_layer(0);                          // exit TT layer
+    return false;
 
-    case COLEMAK:
-      if (record->event.pressed) {
-        set_single_persistent_default_layer(_COLEMAK);
-      }
-      return false;
-      break;
+  // ........................................................... Left Thumb Keys
 
-    case LOWER:
-      if (record->event.pressed) {
-        layer_on(_LOWER);
-      } else {
-        layer_off(_LOWER);
-      }
-      update_tri_layer(_LOWER, _RAISE, _ADJUST);
-      return false;
-      break;
+  case LT_ESC:
+    if (raise_layer(record, _FNCKEY, LEFT, ONDOWN))  { return false; }
+    if (map_shift(record, KC_LSFT, SHIFT, KC_TAB))   { return false; }
+    if (map_shift(record, KC_RSFT, NOSHIFT, KC_TAB)) { return false; }
+    if (tt_keycode)                                  { base_layer(0); return false; }
+    tap_layer(record, _NUMBER);
+    break;
 
-    case RAISE:
-      if (record->event.pressed) {
-        layer_on(_RAISE);
-      } else {
-        layer_off(_RAISE);
-      }
-      update_tri_layer(_LOWER, _RAISE, _ADJUST);
-      return false;
-      break;
+  case LT_I:
+    if (raise_layer(record, _FNCKEY, RIGHT, ONDOWN)) { return false; }
+    lt_shift     (record, mod_down(KC_RSFT) ? SHIFT : NOSHIFT, KC_I, _SYMBOL); // maintain repeating tap case
+    tap_layer    (record, _SYMBOL);
+    rolling_layer(record, LEFT, 0, 0, _SYMBOL, _GUIFN);
+    break;
+  case ML_EQL:
+    tap_layer    (record, _MOUSE);
+    rolling_layer(record, LEFT, NOSHIFT, KC_EQL, _MOUSE, _GUIFN);
+    break;
 
-    case THUMB:
-      if (record->event.pressed) {
-        SEND_STRING(":+1:");
-      }
-      return false;
-      break;
+  // .......................................................... Right Thumb Keys
 
-    case MACSLEEP:
-      if (record->event.pressed) {
-        register_code(KC_RSFT);
-        register_code(KC_RCTL);
-        register_code(KC_POWER);
-        unregister_code(KC_POWER);
-        unregister_code(KC_RCTL);
-        unregister_code(KC_RSFT);
-      }
-      return false;
-      break;
+  case ML_BSLS:
+    tap_layer    (record, _MOUSE);
+    rolling_layer(record, RIGHT, NOSHIFT, KC_BSLS, _MOUSE, _SYMBOL);
+    break;
+  case TD_SPC:
+    if (raise_layer(record, _TTCAPS, LEFT, TOGGLE))  { return false; }
+    if (record->event.pressed)                       { auto_cap = down_punc; } // down_punc persistance for cap_lt()
+    if (map_shift(record, KC_LSFT, NOSHIFT, KC_ENT)) { return false; }
+    if (map_shift(record, KC_RSFT, NOSHIFT, KC_ENT)) { return false; }
+    tap_layer    (record, _GUIFN);
+    rolling_layer(record, RIGHT, 0, 0, _GUIFN, _SYMBOL);
+    break;
+  case TT_SPC:
+#ifdef CAPS_ONOFF
+    if (raise_layer(record, _TTCAPS, LEFT, TOGGLE))  { return false; }
+#endif
+    if (map_shift(record, KC_LSFT, NOSHIFT, KC_ENT)) { return false; }
+    if (map_shift(record, KC_RSFT, NOSHIFT, KC_ENT)) { return false; }
+    break;
 
-    default:
-      return true;
+  case TD_BSPC:
+    if (raise_layer(record, _TTCAPS, RIGHT, TOGGLE)) { return false; }
+    if (map_shift(record, KC_LSFT, NOSHIFT, KC_DEL)) { return false; }
+    if (record->event.pressed)                       { auto_cap = down_punc; } // down_punc persistance for cap_lt()
+    tap_layer(record, _EDIT);
+    break;
+  case KC_BSPC:
+#ifdef CAPS_ONOFF
+    if (raise_layer(record, _TTCAPS, RIGHT, TOGGLE))  { return false; }
+#endif
+    if (map_shift(record, KC_LSFT, NOSHIFT, KC_DEL))  { return false; }
+#ifdef CAPS_ONOFF
+    if (record->event.pressed)                        { key_timer = timer_read(); }
+    else if (timer_elapsed(key_timer) < TAPPING_TERM) { tap_key(KC_BSPC); }
+    return false;                           // capslock toggling trap, use shift bspc -> del for auto repeat
+#else
+    break;
+#endif
+
+  // ............................................................. Modifier Keys
+
+  case SG_TILD:
+    mt_shift(record, KC_LGUI, 0, KC_GRV);
+    break;
+  case SM_G:
+    mt_shift(record, KC_LALT, KC_LSFT, KC_G);
+    break;
+  case SS_A:
+    tap_mods(record, KC_LSFT);
+    mt_shift(record, KC_LSFT, 0, KC_A);
+    break;
+  case SS_T:
+    tap_mods(record, KC_RSFT);
+    mt_shift(record, KC_LSFT, 0, KC_T);
+    break;
+
+  // ......................................................... Shift Mapped Keys
+
+  case KC_COLN:
+  case TD_EMOJ:
+    if (map_shift(record, KC_RSFT, NOSHIFT, KC_COLN)) { return false; }
+    break;
+  case KC_COMM:
+    if (tt_keycode && map_shift(record, KC_RSFT, SHIFT, KC_1)) { return false; }
+    if (map_shift(record, KC_RSFT, NOSHIFT, KC_GRV))           { return false; }
+    break;
+  case KC_DOT:
+    if (map_shift(record, KC_RSFT, SHIFT, KC_SLSH)) { return false; }
+    if (map_shift(record, KC_LSFT, SHIFT, KC_SLSH)) { return false; }
+    break;
+
+  // ..................................................... Leader Capitalization
+
+  case TD_TILD:
+    if (mod_down(KC_RSFT)) { unregister_code(KC_LSFT); } // un-shift before tap dance processing to register unshifted keycodes, see tilde()
+  case KC_EXLM:
+  case KC_QUES:
+    down_punc = (record->event.pressed) ? 1 : 0;         // dot/ques/exlm + space/enter + shift shortcut, see cap_lt()
+    break;
+
+  // ................................................................ Other Keys
+  case QWERTY:
+    if (record->event.pressed) {
+      set_single_persistent_default_layer(_QWERTY);
+    }
+    return false;
+    break;
+
+  case BASE:
+    if (record->event.pressed) {
+      set_single_persistent_default_layer(_BASE);
+    }
+    return false;
+    break;
+
+  case LOWER:
+    if (record->event.pressed) {
+      layer_on(_LOWER);
+    } else {
+      layer_off(_LOWER);
+    }
+    update_tri_layer(_LOWER, _RAISE, _ADJUST);
+    return false;
+    break;
+
+  case RAISE:
+    if (record->event.pressed) {
+      layer_on(_RAISE);
+    } else {
+      layer_off(_RAISE);
+    }
+    update_tri_layer(_LOWER, _RAISE, _ADJUST);
+    return false;
+    break;
+
+  case SLEEP:
+    if (record->event.pressed) {
+      register_code(KC_RSFT);
+      register_code(KC_RCTL);
+      register_code(KC_POWER);
+      unregister_code(KC_POWER);
+      unregister_code(KC_RCTL);
+      unregister_code(KC_RSFT);
+    }
+    return false;
+    break;
+
+
+  default:
+    key_timer = 0;                          // regular keycode, clear timer in keycode_functions.h
   }
-};
-
-void matrix_scan_user(void) {
-  uint8_t layer = biton32(layer_state);
-
-  switch (layer) {
-    case _QWERTY:
-      set_led_off;
-      break;
-    case _RAISE:
-      set_led_blue;
-      break;
-    case _LOWER:
-      set_led_red;
-      break;
-    case _ADJUST:
-      set_led_green;
-      break;
-    default:
-      break;
-  }
-};
+  return true;
+}
