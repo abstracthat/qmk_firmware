@@ -73,10 +73,9 @@ enum keyboard_keycodes {
 
 #define COPY    LGUI(KC_C)
 #define CUT     LGUI(KC_X)
-#define EOT     LGUI(KC_D)
-#define NAK     LGUI(KC_U)
 #define PASTE   TD_PASTE
 #define UNDO    LGUI(KC_Z)
+#define REDO    LGUI(LSFT(KC_Z))
 
 #define TT_SPC  LT  (_TTCURSOR, KC_SPC)
 #define LT_ESC  LT  (_NUMBER, KC_ESC)
@@ -86,10 +85,10 @@ enum keyboard_keycodes {
 #define OS_SFT  OSM (MOD_LSFT)
 
 // #define CNTR_TL TT  (_TTFNCKEY)
-#define CNTR_TR TT  (_TTCAPS)               // pseudo capslock to avoid TT key_timer conflicts
+#define CAPSLCK TT  (_TTCAPS)               // pseudo capslock to avoid TT key_timer conflicts
 // #define CNTR_HL TT  (_TTCURSOR)
 // #define CNTR_HR TT  (_TTMOUSE)
-#define CNTR_BL TT  (_TTNUMBER)
+#define NUMLCK TT  (_TTNUMBER)
 // #define CNTR_BR TT  (_TTREGEX)
 
 // ........................................................ Default Alpha Layout
@@ -126,7 +125,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 #include "keycode_functions.c"
 
 static uint8_t down_punc = 0;               // substitute (0) keycode (1) leader + one shot shift, see cap_lt()
-static uint8_t dual_down = 0;               // dual keys down (2 -> 1 -> 0) reset on last up stroke, see CNTR_TL, CNTR_TR
+static uint8_t dual_down = 0;               // dual keys down (2 -> 1 -> 0) reset on last up stroke, see CNTR_TL, CAPSLCK
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record)
 {
@@ -171,14 +170,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
   //   if (dual_down)                            { dual_down--; base_layer(dual_down); return false; }
   //   tt_escape(record, keycode);
   //   break;
-  case CNTR_TR:
+  case CAPSLCK:
     if (raise_layer(record, 0, RIGHT, TOGGLE)) { dual_down = 2; return false; } // defer reset!
     if (dual_down)                             { dual_down--; base_layer(dual_down); return false; }
     tt_escape(record, keycode);
     break;
   // case CNTR_HL:
   // case CNTR_HR:
-  case CNTR_BL:
+  case NUMLCK:
   // case CNTR_BR:
     tt_escape(record, keycode);
     break;
